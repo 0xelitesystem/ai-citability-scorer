@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Citability Scorer</title>
+<meta name="description" content="Paste a paragraph, get scored on AI citation likelihood. Checks word count, self-containment, named subjects, stats density. Built for the 134-167 word target.">
+<meta property="og:title" content="AI Citability Scorer">
+<meta property="og:description" content="Score any paragraph for AI citation likelihood. Word count, named subjects, stats density, self-containment.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://0xelitesystem.github.io/ai-citability-scorer/og.png">
+<meta property="og:url" content="https://0xelitesystem.github.io/ai-citability-scorer/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AI Citability Scorer">
+<meta name="twitter:description" content="Score paragraphs for AI citation likelihood.">
+<meta name="twitter:image" content="https://0xelitesystem.github.io/ai-citability-scorer/og.png">
+<style>
+:root {
+  --bg: #f4f1ea;
+  --bg-card: #fdfbf6;
+  --bg-input: #ffffff;
+  --ink: #15110b;
+  --ink-soft: #5a5246;
+  --ink-faint: #8a8270;
+  --rule: #1a160e;
+  --rule-soft: #d0c8b8;
+  --accent: #c8331c;
+  --accent-soft: #e85a3c;
+  --good: #2d6a2d;
+  --warn: #a85a0e;
+  --bad: #c8331c;
+  --mono: 'JetBrains Mono', 'Courier New', monospace;
+  --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --condensed: 'Oswald', 'Roboto Condensed', 'Arial Narrow', sans-serif;
+  --serif: 'Playfair Display', 'Times New Roman', Georgia, serif;
+}
+[data-theme="dark"] {
+  --bg: #0a0908;
+  --bg-card: #14110d;
+  --bg-input: #1a1611;
+  --ink: #e8e2d0;
+  --ink-soft: #b0a890;
+  --ink-faint: #6a6452;
+  --rule: #e8e2d0;
+  --rule-soft: #2a261e;
+  --accent: #e85a3c;
+  --accent-soft: #f47a5e;
+  --good: #7ab87a;
+  --warn: #d4a548;
+  --bad: #e85a3c;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+.wrap { max-width: 1320px; margin: 0 auto; padding: 28px 28px 80px; }
+.masthead {
+  border-top: 6px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: 18px 0 12px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.masthead h1 {
+  font-family: var(--condensed);
+  font-size: 56px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--ink);
+  line-height: 1;
+}
+.masthead .edition {
+  font-family: var(--serif);
+  font-size: 14px;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+.dateline {
+  border-bottom: 3px double var(--rule);
+  padding-bottom: 10px;
+  margin-bottom: 32px;
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.theme-toggle {
+  background: transparent;
+  border: 1px solid var(--rule);
+  color: var(--ink);
+  padding: 5px 11px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 0;
+}
+.theme-toggle:hover { background: var(--ink); color: var(--bg); }
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+@media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+.column-rule { border-left: 1px solid var(--rule-soft); padding-left: 32px; }
+@media (max-width: 980px) { .column-rule { border-left: none; padding-left: 0; padding-top: 24px; border-top: 1px solid var(--rule-soft); } }
+
+h2.section-head {
+  font-family: var(--condensed);
+  font-size: 22px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 0 0 4px 0;
+  color: var(--ink);
+  font-weight: 700;
+}
+h2.section-head .num { color: var(--accent); margin-right: 8px; }
+.section-sub {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--ink-soft);
+  margin: 0 0 18px 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+textarea.input {
+  width: 100%;
+  min-height: 260px;
+  font-family: var(--serif);
+  font-size: 16px;
+  line-height: 1.7;
+  padding: 18px 22px;
+  background: var(--bg-input);
+  border: 1px solid var(--rule);
+  color: var(--ink);
+  border-radius: 0;
+  resize: vertical;
+}
+textarea.input:focus { outline: none; border-color: var(--accent); }
+
+.examples-row {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  font-family: var(--mono);
+}
+.example-btn {
+  background: transparent;
+  border: 1px solid var(--rule-soft);
+  color: var(--ink);
+  padding: 5px 11px;
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+  margin-right: 6px;
+  margin-top: 4px;
+  border-radius: 0;
+}
+.example-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.score-board {
+  background: var(--bg-card);
+  border: 2px solid var(--rule);
+  padding: 22px 24px;
+  margin-bottom: 22px;
+}
+.score-display {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.score-num {
+  font-family: var(--condensed);
+  font-size: 96px;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--ink);
+}
+.score-num.high { color: var(--good); }
+.score-num.mid { color: var(--warn); }
+.score-num.low { color: var(--bad); }
+.score-of { font-family: var(--mono); font-size: 14px; color: var(--ink-soft); }
+.score-label {
+  font-family: var(--condensed);
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  margin-left: auto;
+  text-align: right;
+}
+.score-label .verdict { display: block; font-size: 11px; color: var(--ink-soft); margin-top: 2px; letter-spacing: 0.04em; font-family: var(--mono); }
+.score-bar { height: 3px; background: var(--rule-soft); position: relative; margin-top: 12px; }
+.score-fill { position: absolute; top: 0; left: 0; height: 100%; background: var(--accent); transition: width 0.3s, background 0.3s; }
+.score-fill.high { background: var(--good); }
+.score-fill.mid { background: var(--warn); }
+.score-fill.low { background: var(--bad); }
+
+.metric-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 22px 0;
+}
+.metric {
+  border-bottom: 1px solid var(--rule-soft);
+  padding: 14px 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 16px;
+  align-items: start;
+}
+.metric:last-child { border-bottom: none; }
+.metric-name {
+  font-family: var(--condensed);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink);
+  font-weight: 700;
+}
+.metric-status {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border: 1px solid currentColor;
+}
+.metric-status.pass { color: var(--good); }
+.metric-status.warn { color: var(--warn); }
+.metric-status.fail { color: var(--bad); }
+.metric-detail {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  font-family: var(--serif);
+  font-style: italic;
+}
+.metric-detail .num { font-family: var(--mono); font-style: normal; color: var(--ink); font-weight: 600; }
+
+.suggestion-block {
+  background: var(--bg-card);
+  border-left: 4px solid var(--accent);
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.suggestion-block .label {
+  font-family: var(--condensed);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.suggestion-block .body { color: var(--ink); }
+
+footer {
+  margin-top: 56px;
+  padding-top: 18px;
+  border-top: 3px double var(--rule);
+  font-size: 12px;
+  color: var(--ink-soft);
+  font-family: var(--mono);
+  text-align: center;
+}
+footer a { color: var(--accent); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+.placeholder {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--ink-faint);
+  padding: 60px 20px;
+  text-align: center;
+  border: 1px dashed var(--rule-soft);
+}
+</style>
+</head>
+<body data-theme="light">
+<div class="wrap">
+  <div class="masthead">
+    <h1>The Citability Inspector</h1>
+    <div class="edition">A field tool for AI-citable prose</div>
+  </div>
+  <div class="dateline">
+    <span>Vol. I &middot; Built for the 134-167 word target</span>
+    <button class="theme-toggle" id="theme-toggle">Dark</button>
+  </div>
+
+  <div class="grid">
+    <div>
+      <h2 class="section-head"><span class="num">01</span>Paragraph under inspection</h2>
+      <p class="section-sub">Paste any single paragraph. Best signal at 100 to 200 words. Multiple paragraphs are accepted but only the longest is scored.</p>
+      <textarea class="input" id="input" placeholder="Paste a paragraph here..."></textarea>
+      <div class="examples-row">
+        Load example:
+        <button class="example-btn" data-example="good">High-citability</button>
+        <button class="example-btn" data-example="bad">Low-citability</button>
+        <button class="example-btn" data-example="empty">Clear</button>
+      </div>
+    </div>
+
+    <div class="column-rule">
+      <h2 class="section-head"><span class="num">02</span>Score and breakdown</h2>
+      <p class="section-sub">Eight checks weighted by impact on AI citation likelihood. Score updates as you type.</p>
+
+      <div class="score-board">
+        <div class="score-display">
+          <span class="score-num" id="score-num">0</span>
+          <span class="score-of">/ 100</span>
+          <span class="score-label">
+            <span id="score-tier">No input yet</span>
+            <span class="verdict" id="score-verdict">Paste a paragraph to begin</span>
+          </span>
+        </div>
+        <div class="score-bar"><div class="score-fill" id="score-fill" style="width: 0;"></div></div>
+      </div>
+
+      <ul class="metric-list" id="metric-list"></ul>
+
+      <div id="suggestions"></div>
+    </div>
+  </div>
+
+  <footer>
+    Built by <a href="https://github.com/0xelitesystem" target="_blank" rel="noopener">0xelitesystem</a>. Pairs with <a href="https://github.com/0xelitesystem/llms-txt-generator" target="_blank" rel="noopener">llms-txt-generator</a>, <a href="https://github.com/0xelitesystem/schema-markup-generator" target="_blank" rel="noopener">schema-markup-generator</a>, <a href="https://github.com/0xelitesystem/e-e-a-t-auditor" target="_blank" rel="noopener">e-e-a-t-auditor</a>, and <a href="https://github.com/0xelitesystem/geo-audit-checklist" target="_blank" rel="noopener">geo-audit-checklist</a>.
+  </footer>
+</div>
+
+<script>
+'use strict';
+
+const $ = (id) => document.getElementById(id);
+
+const EXAMPLES = {
+  good: `BYOK pricing saves users 60 to 90 percent on AI tool subscriptions compared to bundled SaaS pricing, because the user pays the underlying provider (OpenAI, Anthropic, DeepSeek) directly at API cost. A typical solo founder running 10 AI tools at $20 per month each pays $200 monthly in bundled SaaS fees. The same workload on BYOK with DeepSeek averages $3 to $15 per month in API usage, per data from 0xelitesystem's BYOK pricing study (2026). BYOK requires three setup steps: create an account at the provider, generate an API key, paste the key into the tool. Most BYOK tools store the key in browser memory only, never sending it to a server. The tradeoff is responsibility: the user manages the key, the rate limits, and the usage cap.`,
+  bad: `There are many ways to think about this, but ultimately the answer depends on your situation. As we covered above, the key is to understand the bigger picture. It's important to leverage the right tools and to navigate the complexities of the modern landscape. In today's fast-paced world, you need to delve into the details and unlock your potential. This will help you achieve great results and take your work to the next level. Don't forget what we discussed earlier. Remember, the journey is the destination.`,
+  empty: ''
+};
+
+const STOP_OPENERS = [
+  'there are many', 'there is a', 'in today', 'in this article', 'in the modern',
+  'as we covered', 'as mentioned', 'as discussed', 'as we know', 'as you may know',
+  'when it comes to', 'it is important to', 'it\'s important to', 'one of the most',
+  'in the world of', 'in the realm of', 'let\'s dive', 'let\'s explore',
+  'in conclusion', 'to sum up', 'remember', 'don\'t forget'
+];
+
+const VAGUE_REFS = [
+  /\bit (is|was|has|gives|provides|makes|takes|does)\b/gi,
+  /\bthis (is|was|has|gives|provides|makes|takes|does)\b/gi,
+  /\bthat (is|was|has|gives|provides|makes|takes|does)\b/gi
+];
+
+const INTRA_DOC_REFS = [
+  /\bas (mentioned|covered|discussed|stated|noted) (above|below|earlier|previously)\b/gi,
+  /\bsee (above|below|the .* section|the previous|the next)\b/gi,
+  /\b(in|from) the (previous|next|above|below|earlier|following) (section|paragraph|chapter)\b/gi,
+  /\bremember (what|that) we (covered|discussed|said|mentioned)\b/gi
+];
+
+const EMPTY_ADJECTIVES = [
+  'innovative', 'cutting-edge', 'state-of-the-art', 'world-class', 'best-in-class',
+  'leading', 'revolutionary', 'game-changing', 'transformative', 'powerful',
+  'robust', 'seamless', 'comprehensive', 'holistic', 'synergistic',
+  'unlock your', 'level up', 'take it to the next', 'navigate the complexities'
+];
+
+function getLongestParagraph(text) {
+  const paragraphs = text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+  if (paragraphs.length === 0) return text.trim();
+  return paragraphs.reduce((longest, p) => (p.split(/\s+/).length > longest.split(/\s+/).length ? p : longest), '');
+}
+
+function countWords(text) {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function checkWordCount(text) {
+  const wc = countWords(text);
+  if (wc === 0) return { status: 'fail', score: 0, detail: 'No content.' };
+  if (wc < 50) return { status: 'fail', score: 3, detail: `<span class="num">${wc}</span> words. Below 50 is too thin to be cited.` };
+  if (wc < 100) return { status: 'warn', score: 9, detail: `<span class="num">${wc}</span> words. AI engines prefer 134 to 167 word passages.` };
+  if (wc >= 134 && wc <= 167) return { status: 'pass', score: 15, detail: `<span class="num">${wc}</span> words. In the sweet spot for AI citation.` };
+  if (wc >= 100 && wc <= 220) return { status: 'pass', score: 12, detail: `<span class="num">${wc}</span> words. Acceptable. Target range is 134 to 167.` };
+  return { status: 'warn', score: 7, detail: `<span class="num">${wc}</span> words. Over 220 reduces extraction quality.` };
+}
+
+function checkLeadAnswer(text) {
+  const firstSentence = text.split(/[.!?]/)[0].trim();
+  if (!firstSentence) return { status: 'fail', score: 0, detail: 'No first sentence.' };
+  const lower = firstSentence.toLowerCase();
+  const startsVague = STOP_OPENERS.some(s => lower.startsWith(s));
+  const hasVerb = /\b(is|are|was|were|has|have|costs?|saves?|increases?|decreases?|reduces?|provides?|allows?|enables?|requires?|means|equals|equals?)\b/.test(lower);
+  const hasNumber = /\d/.test(firstSentence);
+
+  if (startsVague) return { status: 'fail', score: 0, detail: 'First sentence opens with a vague filler phrase. Lead with the claim itself.' };
+  if (hasNumber && hasVerb) return { status: 'pass', score: 15, detail: 'First sentence makes a specific factual claim with a number.' };
+  if (hasVerb) return { status: 'pass', score: 11, detail: 'First sentence makes a factual claim. Adding a number would strengthen it.' };
+  return { status: 'warn', score: 6, detail: 'First sentence lacks a clear factual claim. AI engines extract the first sentence first.' };
+}
+
+function checkSelfContained(text) {
+  const matches = [];
+  INTRA_DOC_REFS.forEach(re => {
+    const m = text.match(re);
+    if (m) matches.push(...m);
+  });
+  if (matches.length === 0) return { status: 'pass', score: 10, detail: 'No "as mentioned above" or "see below" references found.' };
+  return { status: 'fail', score: 2, detail: `<span class="num">${matches.length}</span> intra-document reference(s) found. AI engines cannot resolve these when extracting passages.` };
+}
+
+function checkNamedSubjects(text) {
+  let vagueCount = 0;
+  VAGUE_REFS.forEach(re => {
+    const m = text.match(re);
+    if (m) vagueCount += m.length;
+  });
+  const wc = countWords(text);
+  if (wc === 0) return { status: 'fail', score: 0, detail: 'No content.' };
+  const ratio = vagueCount / wc;
+  if (ratio < 0.015) return { status: 'pass', score: 12, detail: `Vague pronouns ("it", "this") used sparingly: <span class="num">${vagueCount}</span> instances.` };
+  if (ratio < 0.03) return { status: 'warn', score: 7, detail: `<span class="num">${vagueCount}</span> vague pronouns. Replace with the actual noun where possible.` };
+  return { status: 'fail', score: 3, detail: `<span class="num">${vagueCount}</span> vague pronouns. AI engines lose the subject when extracting.` };
+}
+
+function checkStatsDensity(text) {
+  const numbers = (text.match(/\b\d+(?:[.,]\d+)?(%|x| percent| million| billion| thousand)?\b/gi) || []).length;
+  const years = (text.match(/\b(19|20)\d{2}\b/g) || []).length;
+  const named = (text.match(/\b[A-Z][a-z]+(?: [A-Z][a-z]+)+\b/g) || []).length;
+  const wc = countWords(text);
+  if (wc < 30) return { status: 'fail', score: 0, detail: 'Not enough content to evaluate.' };
+  const density = (numbers + years + named) / wc;
+  if (density > 0.04) return { status: 'pass', score: 12, detail: `<span class="num">${numbers}</span> numbers, <span class="num">${years}</span> dates, <span class="num">${named}</span> named entities.` };
+  if (density > 0.02) return { status: 'warn', score: 7, detail: `<span class="num">${numbers}</span> numbers, <span class="num">${years}</span> dates, <span class="num">${named}</span> named entities. Could use more.` };
+  return { status: 'fail', score: 2, detail: 'Low density of numbers, dates, and named entities. AI engines weight specific facts more.' };
+}
+
+function checkSourceCitations(text) {
+  const sources = (text.match(/\b(per|according to|reports?|study|studies|research|data from|cited by)\b/gi) || []).length;
+  const quotedNames = (text.match(/"[^"]{8,80}"/g) || []).length;
+  const parens = (text.match(/\([^)]*(\d{4}|study|report|et al|source)[^)]*\)/gi) || []).length;
+  const total = sources + quotedNames + parens;
+  if (total >= 2) return { status: 'pass', score: 8, detail: `<span class="num">${total}</span> source citation(s) found.` };
+  if (total === 1) return { status: 'warn', score: 4, detail: 'One source citation. Two or more strengthens the passage.' };
+  return { status: 'warn', score: 1, detail: 'No source citations. Adding a named study or expert quote helps a lot.' };
+}
+
+function checkEmptyAdjectives(text) {
+  const lower = text.toLowerCase();
+  const hits = EMPTY_ADJECTIVES.filter(adj => lower.includes(adj));
+  if (hits.length === 0) return { status: 'pass', score: 10, detail: 'No empty adjectives or hype phrases found.' };
+  if (hits.length <= 2) return { status: 'warn', score: 5, detail: `Found: ${hits.join(', ')}. Cut these.` };
+  return { status: 'fail', score: 1, detail: `Found <span class="num">${hits.length}</span> empty adjectives: ${hits.slice(0, 5).join(', ')}${hits.length > 5 ? '...' : ''}.` };
+}
+
+function checkSentenceVariety(text) {
+  const sents = text.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 0);
+  if (sents.length < 2) return { status: 'warn', score: 3, detail: 'Single sentence. Multi-sentence passages are extracted more often.' };
+  const lengths = sents.map(s => s.split(/\s+/).length);
+  const avg = lengths.reduce((a,b) => a+b, 0) / lengths.length;
+  const variance = lengths.reduce((a,b) => a + Math.pow(b - avg, 2), 0) / lengths.length;
+  const stdev = Math.sqrt(variance);
+  if (avg > 35) return { status: 'warn', score: 4, detail: `Average sentence length: <span class="num">${Math.round(avg)}</span> words. Long sentences hurt extraction. Aim for 15 to 22.` };
+  if (stdev < 3 && sents.length > 3) return { status: 'warn', score: 5, detail: 'All sentences are similar in length. Mix short claims with longer evidence.' };
+  if (avg >= 12 && avg <= 24) return { status: 'pass', score: 8, detail: `Average <span class="num">${Math.round(avg)}</span> word sentences with healthy variation.` };
+  return { status: 'pass', score: 6, detail: `Average <span class="num">${Math.round(avg)}</span> word sentences.` };
+}
+
+const METRIC_DEFS = [
+  { name: 'Word count', fn: checkWordCount, max: 15 },
+  { name: 'Lead-with-answer', fn: checkLeadAnswer, max: 15 },
+  { name: 'Self-contained', fn: checkSelfContained, max: 10 },
+  { name: 'Named subjects', fn: checkNamedSubjects, max: 12 },
+  { name: 'Stats and entities', fn: checkStatsDensity, max: 12 },
+  { name: 'Source citations', fn: checkSourceCitations, max: 8 },
+  { name: 'No empty adjectives', fn: checkEmptyAdjectives, max: 10 },
+  { name: 'Sentence variety', fn: checkSentenceVariety, max: 8 }
+];
+
+function scoreText(text) {
+  const paragraph = getLongestParagraph(text);
+  if (!paragraph) {
+    return { total: 0, metrics: [], suggestions: [] };
+  }
+  const metrics = METRIC_DEFS.map(def => {
+    const result = def.fn(paragraph);
+    return { ...def, ...result };
+  });
+  const total = metrics.reduce((sum, m) => sum + m.score, 0);
+  const suggestions = [];
+  metrics.forEach(m => {
+    if (m.status === 'fail') {
+      suggestions.push({ label: m.name, body: getSuggestion(m.name, paragraph) });
+    }
+  });
+  return { total, metrics, suggestions, paragraph };
+}
+
+function getSuggestion(metricName, text) {
+  switch (metricName) {
+    case 'Word count':
+      const wc = countWords(text);
+      if (wc < 50) return 'Expand to at least 100 words. Add a specific example, a number, or a named source. Below 50 words AI engines treat the passage as a fragment, not a citable claim.';
+      if (wc > 220) return 'Trim to 134-167 words by removing throat-clearing sentences and redundant restatements. The first and last sentences should carry the most weight.';
+      return 'Aim for 134-167 words. Below 100 reads as fragment, above 220 reduces extraction quality.';
+    case 'Lead-with-answer':
+      return 'Replace your first sentence with the direct claim. Format: "[Subject] [verb] [specific outcome with number]." Example: "BYOK pricing saves 60 to 90 percent versus bundled SaaS." Cut any "In today\'s world" or "There are many ways" opener.';
+    case 'Self-contained':
+      return 'Delete every "as mentioned above", "see below", "we covered this earlier" phrase. The passage must read as a standalone unit. AI engines extract chunks, not whole pages.';
+    case 'Named subjects':
+      return 'Find every "it", "this", "that" used as the subject and replace with the actual noun. "It saves money" becomes "BYOK pricing saves money". Repetition is not bad in citation-target passages; it is required for clarity.';
+    case 'Stats and entities':
+      return 'Add specific numbers, dates, percentages, dollar amounts, named products, named studies, named experts. AI engines weight specific facts heavily. "Many users save money" is forgettable; "users save $180/month on average" is citable.';
+    case 'Source citations':
+      return 'Cite a named source for non-obvious claims. Formats that work: "per [Study Name] (2026)", "according to [Named Expert]", or a parenthetical with the source. Even one cited claim raises the whole passage.';
+    case 'No empty adjectives':
+      return 'Replace every empty adjective with a concrete fact. "Innovative platform" becomes "browser-only tool with 12 schema types". "Robust system" becomes "handles 10,000 requests per second with 99.9% uptime." Numbers and nouns beat adjectives.';
+    case 'Sentence variety':
+      return 'Mix short declarative claims (8 to 14 words) with longer evidence sentences (18 to 25 words). Avoid all sentences being the same length, especially all long.';
+    default:
+      return '';
+  }
+}
+
+function renderResults(text) {
+  const result = scoreText(text);
+  const scoreNum = $('score-num');
+  const scoreFill = $('score-fill');
+  const scoreTier = $('score-tier');
+  const scoreVerdict = $('score-verdict');
+
+  scoreNum.textContent = result.total;
+  scoreFill.style.width = result.total + '%';
+
+  let tier = '';
+  let verdict = '';
+  let cls = '';
+  if (text.trim().length === 0) {
+    tier = 'No input yet';
+    verdict = 'Paste a paragraph to begin';
+    cls = '';
+  } else if (result.total >= 70) {
+    tier = 'Highly citable';
+    verdict = 'AI engines should extract this passage well';
+    cls = 'high';
+  } else if (result.total >= 50) {
+    tier = 'Citable with edits';
+    verdict = 'Address the failing checks below';
+    cls = 'mid';
+  } else {
+    tier = 'Low citability';
+    verdict = 'Multiple structural issues need rewriting';
+    cls = 'low';
+  }
+  scoreTier.textContent = tier;
+  scoreVerdict.textContent = verdict;
+  scoreNum.className = 'score-num ' + cls;
+  scoreFill.className = 'score-fill ' + cls;
+
+  const list = $('metric-list');
+  if (result.metrics.length === 0) {
+    list.innerHTML = '<li class="placeholder">No paragraph to score yet.</li>';
+    $('suggestions').innerHTML = '';
+    return;
+  }
+  list.innerHTML = result.metrics.map(m => `
+    <li class="metric">
+      <span class="metric-name">${m.name}</span>
+      <span class="metric-status ${m.status === 'pass' ? 'pass' : m.status === 'warn' ? 'warn' : 'fail'}">${m.score} / ${m.max}</span>
+      <div class="metric-detail">${m.detail}</div>
+    </li>
+  `).join('');
+
+  const sugContainer = $('suggestions');
+  if (result.suggestions.length > 0) {
+    sugContainer.innerHTML = '<h2 class="section-head" style="margin-top: 24px;"><span class="num">03</span>Rewrite suggestions</h2><p class="section-sub">Direct fixes for failing checks.</p>' +
+      result.suggestions.map(s => `
+        <div class="suggestion-block">
+          <div class="label">Fix: ${s.label}</div>
+          <div class="body">${s.body}</div>
+        </div>
+      `).join('');
+  } else {
+    sugContainer.innerHTML = '';
+  }
+}
+
+$('input').addEventListener('input', (e) => {
+  renderResults(e.target.value);
+});
+
+document.querySelectorAll('.example-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const ex = EXAMPLES[btn.dataset.example];
+    $('input').value = ex;
+    renderResults(ex);
+  });
+});
+
+$('theme-toggle').addEventListener('click', () => {
+  const cur = document.body.dataset.theme;
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.body.dataset.theme = next;
+  $('theme-toggle').textContent = next === 'dark' ? 'Light' : 'Dark';
+});
+
+if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+  document.body.dataset.theme = 'dark';
+  $('theme-toggle').textContent = 'Light';
+}
+
+renderResults('');
+</script>
+</body>
+</html>
