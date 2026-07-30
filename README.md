@@ -66,6 +66,10 @@ These behaviors are easier to do once than to catch in editing. This tool catche
 - [readme-slop-checker](https://github.com/0xelitesystem/readme-slop-checker): catch AI slop in README files specifically
 - [geo-audit-checklist](https://github.com/0xelitesystem/geo-audit-checklist): full GEO checklist with this tool's checks as one item
 
+## More
+
+Part of a catalog of single-file browser tools and plain-language references, all MIT licensed and dependency-free: [0xelitesystem.github.io](https://0xelitesystem.github.io/). Built by [elitesystem.ai](https://elitesystem.ai).
+
 ## License
 
 MIT. Free to use, fork, modify, and ship.
