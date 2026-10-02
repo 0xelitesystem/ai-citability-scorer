@@ -25,7 +25,7 @@ Scores any paragraph against eight criteria that correlate with AI engines citin
 
 Total: 100 points. 70+ is highly citable. 50-69 needs edits. Below 50 needs a rewrite.
 
-## Use it
+## Use
 
 Open `index.html` in any browser. Or visit `https://0xelitesystem.github.io/ai-citability-scorer/`.
 
@@ -33,6 +33,10 @@ Open `index.html` in any browser. Or visit `https://0xelitesystem.github.io/ai-c
 2. Score and breakdown appear on the right.
 3. Failing checks generate rewrite suggestions below.
 4. Try the high-citability and low-citability examples to see the contrast.
+
+## Why this exists
+
+Writing a paragraph an AI engine will quote is a checklist problem, and a checklist is easier to run than to remember. This page scores one paragraph against eight checks as you type. It is one HTML file with no tracking and no network calls, MIT licensed.
 
 ## Why these checks
 
@@ -54,9 +58,26 @@ These behaviors are easier to do once than to catch in editing. This tool catche
 
 ## What's not included
 
-- No localStorage. Refresh clears your input.
+- Your input is never stored: a refresh clears it. Only the light or dark theme choice is kept in localStorage.
 - No tracking, no analytics, no third-party scripts.
 - No backend. Everything runs in your browser.
+
+## Privacy
+
+Everything runs in your browser. The paragraph you paste is scored locally and is never sent anywhere. The page makes no network requests and has no analytics. Your text is not saved, so a refresh clears it. The only thing the page stores is your light or dark theme choice, in localStorage under the key `theme`.
+
+## Run locally
+
+```
+git clone https://github.com/0xelitesystem/ai-citability-scorer
+cd ai-citability-scorer
+```
+
+Open `index.html` in any modern browser, or serve the folder with `python -m http.server 8000` and visit http://localhost:8000/.
+
+## Build
+
+No build step. The whole tool is one `index.html` file with inline CSS and JavaScript.
 
 ## Pairs with
 
