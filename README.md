@@ -82,7 +82,7 @@ No build step. The whole tool is one `index.html` file with inline CSS and JavaS
 ## Pairs with
 
 - [llms-txt-file-builder](https://github.com/0xelitesystem/llms-txt-file-builder): build the AI-facing site map for engines to find your passages
-- [schema-markup-generator](https://github.com/0xelitesystem/schema-markup-generator): add the structured data layer
+- [json-ld-markup-builder](https://github.com/0xelitesystem/json-ld-markup-builder): add the structured data layer
 - [e-e-a-t-auditor](https://github.com/0xelitesystem/e-e-a-t-auditor): audit the whole page (this scores one paragraph)
 - [readme-slop-checker](https://github.com/0xelitesystem/readme-slop-checker): catch AI slop in README files specifically
 - [geo-audit-checklist](https://github.com/0xelitesystem/geo-audit-checklist): full GEO checklist with this tool's checks as one item
